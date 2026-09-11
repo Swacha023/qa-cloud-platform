@@ -94,6 +94,18 @@ resource "aws_security_group" "api" {
   }
 }
 
+resource "aws_security_group" "worker" {
+  name   = "${var.project_name}-worker"
+  vpc_id = aws_vpc.main.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_security_group" "db" {
   name   = "${var.project_name}-db"
   vpc_id = aws_vpc.main.id
@@ -157,6 +169,11 @@ resource "aws_cloudwatch_log_group" "api" {
   retention_in_days = 7
 }
 
+resource "aws_cloudwatch_log_group" "worker" {
+  name              = "/ecs/${var.project_name}-worker"
+  retention_in_days = 7
+}
+
 resource "aws_ecs_cluster" "main" {
   name = var.project_name
 }
@@ -211,6 +228,49 @@ resource "aws_iam_role_policy" "api_sqs" {
 
         Action = [
           "sqs:SendMessage"
+        ]
+
+        Resource = aws_sqs_queue.test_runs.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role" "worker_task" {
+  name = "${var.project_name}-worker-task"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+      {
+        Effect = "Allow"
+
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "worker_sqs" {
+  name = "${var.project_name}-worker-sqs"
+  role = aws_iam_role.worker_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+      {
+        Effect = "Allow"
+
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
         ]
 
         Resource = aws_sqs_queue.test_runs.arn
@@ -323,6 +383,67 @@ resource "aws_ecs_task_definition" "api" {
   ])
 }
 
+resource "aws_ecs_task_definition" "worker" {
+  family                   = "${var.project_name}-worker"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+
+  cpu    = "1024"
+  memory = "2048"
+
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+  task_role_arn      = aws_iam_role.worker_task.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+
+  container_definitions = jsonencode([
+    {
+      name      = "worker"
+      image     = "${aws_ecr_repository.worker.repository_url}:latest"
+      essential = true
+
+      environment = [
+        {
+          name  = "AWS_REGION"
+          value = "ca-central-1"
+        },
+        {
+          name  = "SQS_QUEUE_URL"
+          value = aws_sqs_queue.test_runs.url
+        },
+        {
+          name  = "BASE_URL"
+          value = "https://${aws_cloudfront_distribution.frontend.domain_name}"
+        },
+        {
+          name  = "API_BASE_URL"
+          value = "https://${aws_cloudfront_distribution.frontend.domain_name}"
+        }
+      ]
+
+      secrets = [
+        {
+          name      = "WORKER_TOKEN"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:WORKER_TOKEN::"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.worker.name
+          awslogs-region        = "ca-central-1"
+          awslogs-stream-prefix = "worker"
+        }
+      }
+    }
+  ])
+}
+
 resource "aws_lb" "api" {
   name               = substr(var.project_name, 0, 32)
   internal           = false
@@ -375,6 +496,25 @@ resource "aws_ecs_service" "api" {
   }
 
   depends_on = [aws_lb_listener.http]
+}
+
+resource "aws_ecs_service" "worker" {
+  name            = "${var.project_name}-worker"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.worker.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.worker.id]
+    assign_public_ip = true
+  }
+
+  depends_on = [
+    aws_iam_role_policy.worker_sqs,
+    aws_iam_role_policy.ecs_secrets
+  ]
 }
 
 resource "aws_sqs_queue" "test_runs" {
