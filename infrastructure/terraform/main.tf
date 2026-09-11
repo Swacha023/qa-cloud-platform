@@ -543,6 +543,29 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
   signing_protocol                  = "sigv4"
 }
 
+resource "aws_cloudfront_function" "spa_rewrite" {
+  name    = "${var.project_name}-spa-rewrite"
+  runtime = "cloudfront-js-2.0"
+  comment = "Rewrite React SPA routes to index.html"
+  publish = true
+
+  code = <<-EOT
+function handler(event) {
+    var request = event.request;
+    var uri = request.uri;
+
+    if (uri.endsWith('/')) {
+        request.uri += 'index.html';
+    } else if (!uri.includes('.')) {
+        request.uri = '/index.html';
+    }
+
+    return request;
+}
+EOT
+}
+
+
 resource "aws_cloudfront_distribution" "frontend" {
   enabled             = true
   default_root_object = "index.html"
@@ -578,6 +601,10 @@ resource "aws_cloudfront_distribution" "frontend" {
         forward = "none"
       }
     }
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.spa_rewrite.arn
+    }
   }
 
   ordered_cache_behavior {
@@ -603,18 +630,6 @@ resource "aws_cloudfront_distribution" "frontend" {
         forward = "all"
       }
     }
-  }
-
-  custom_error_response {
-    error_code         = 403
-    response_code      = 200
-    response_page_path = "/index.html"
-  }
-
-  custom_error_response {
-    error_code         = 404
-    response_code      = 200
-    response_page_path = "/index.html"
   }
 
   restrictions {
