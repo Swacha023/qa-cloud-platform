@@ -444,7 +444,12 @@ resource "aws_cloudfront_distribution" "frontend" {
 
     forwarded_values {
       query_string = true
-      headers      = ["Authorization", "Content-Type", "Origin"]
+      headers = [
+        "Authorization",
+        "Content-Type",
+        "Origin",
+        "X-Worker-Token"
+      ]
 
       cookies {
         forward = "all"
