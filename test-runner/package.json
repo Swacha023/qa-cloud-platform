@@ -1,8 +1,16 @@
 {
-  "name":"qa-cloud-platform-test-runner",
-  "private":true,
-  "version":"1.0.0",
-  "type":"module",
-  "scripts":{"test":"playwright test"},
-  "devDependencies":{"@playwright/test":"1.63.0"}
+  "name": "qa-cloud-platform-test-runner",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "worker": "node worker.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sqs": "^3.1130.0"
+  }
 }
