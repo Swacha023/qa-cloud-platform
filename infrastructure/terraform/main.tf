@@ -223,8 +223,9 @@ resource "aws_secretsmanager_secret" "app" {
 resource "aws_secretsmanager_secret_version" "app" {
   secret_id = aws_secretsmanager_secret.app.id
   secret_string = jsonencode({
-    DB_PASSWORD = var.db_password
-    JWT_SECRET  = var.jwt_secret
+    DB_PASSWORD  = var.db_password
+    JWT_SECRET   = var.jwt_secret
+    WORKER_TOKEN = var.worker_token
   })
 }
 
@@ -295,6 +296,10 @@ resource "aws_ecs_task_definition" "api" {
         {
           name      = "APP_JWT_SECRET"
           valueFrom = "${aws_secretsmanager_secret.app.arn}:JWT_SECRET::"
+        },
+        {
+          name      = "APP_WORKER_TOKEN"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:WORKER_TOKEN::"
         }
       ]
 
