@@ -1,0 +1,2 @@
+import {test,expect} from '@playwright/test';
+test('user can navigate to a project and see test management controls',async({page})=>{await page.goto('/');await page.getByRole('button',{name:'Sign in'}).click();const first=page.locator('.project-card').first();await first.click();await expect(page.getByRole('button',{name:'Run tests'})).toBeVisible();await expect(page.getByPlaceholder('New test suite')).toBeVisible();});

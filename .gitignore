@@ -1,0 +1,28 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Java / Maven
+backend/target/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+test-runner/node_modules/
+test-runner/playwright-report/
+test-runner/test-results/
+
+# Environment / secrets
+.env
+backend/.env
+frontend/.env
+*.tfvars
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# OS
+.DS_Store
+Thumbs.db
