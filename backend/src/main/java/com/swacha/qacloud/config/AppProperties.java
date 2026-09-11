@@ -11,4 +11,5 @@ public class AppProperties {
     private String jwtSecret;
     private String frontendUrl = "http://localhost:5173";
     private String testRunnerDir = "../test-runner";
+    private String sqsQueueUrl;
 }

@@ -24,3 +24,4 @@ app:
   jwt-secret: ${APP_JWT_SECRET:change-this-local-secret-to-at-least-32-characters}
   frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
   test-runner-dir: ${APP_TEST_RUNNER_DIR:../test-runner}
+  sqs-queue-url: ${APP_SQS_QUEUE_URL:}
