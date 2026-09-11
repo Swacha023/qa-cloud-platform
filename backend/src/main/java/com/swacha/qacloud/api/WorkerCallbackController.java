@@ -1,6 +1,7 @@
 package com.swacha.qacloud.api;
 
 import com.swacha.qacloud.config.AppProperties;
+import com.swacha.qacloud.domain.TestCaseEntity;
 import com.swacha.qacloud.domain.TestStatus;
 import com.swacha.qacloud.service.TestManagementService;
 
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/internal")
@@ -25,6 +27,28 @@ public class WorkerCallbackController {
         this.properties = properties;
     }
 
+    // Worker uses this to discover the QACloud test cases for a project.
+    @GetMapping("/projects/{projectId}/cases")
+    public ResponseEntity<List<CaseResponse>> projectCases(
+            @PathVariable Long projectId,
+            @RequestHeader(value = "X-Worker-Token", required = false) String workerToken) {
+
+        if (!validWorkerToken(workerToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        List<CaseResponse> response = tests.projectCases(projectId)
+                .stream()
+                .map(testCase -> new CaseResponse(
+                        testCase.getId(),
+                        testCase.getTitle()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(response);
+    }
+
+    // Worker posts one individual Playwright result here.
     @PostMapping("/runs/{runId}/results")
     public ResponseEntity<Void> addResult(
             @PathVariable Long runId,
@@ -54,6 +78,7 @@ public class WorkerCallbackController {
         return ResponseEntity.noContent().build();
     }
 
+    // Worker calls this after all Playwright tests have finished.
     @PostMapping("/runs/{runId}/complete")
     public ResponseEntity<Void> completeRun(
             @PathVariable Long runId,
@@ -69,6 +94,7 @@ public class WorkerCallbackController {
     }
 
     private boolean validWorkerToken(String providedToken) {
+
         String expectedToken = properties.getWorkerToken();
 
         if (providedToken == null ||
@@ -81,6 +107,12 @@ public class WorkerCallbackController {
                 providedToken.getBytes(StandardCharsets.UTF_8),
                 expectedToken.getBytes(StandardCharsets.UTF_8)
         );
+    }
+
+    public record CaseResponse(
+            Long id,
+            String title
+    ) {
     }
 
     public record ResultRequest(
