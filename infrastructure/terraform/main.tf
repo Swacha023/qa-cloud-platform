@@ -144,6 +144,14 @@ resource "aws_ecr_repository" "api" {
   }
 }
 
+resource "aws_ecr_repository" "worker" {
+  name = "${var.project_name}-worker"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
 resource "aws_cloudwatch_log_group" "api" {
   name              = "/ecs/${var.project_name}"
   retention_in_days = 7
@@ -521,6 +529,10 @@ output "cloudfront_domain" {
 
 output "ecr_repository" {
   value = aws_ecr_repository.api.repository_url
+}
+
+output "worker_ecr_repository" {
+  value = aws_ecr_repository.worker.repository_url
 }
 
 output "sqs_queue_url" {
