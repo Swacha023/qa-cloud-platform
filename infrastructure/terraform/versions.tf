@@ -7,8 +7,12 @@ terraform {
       version = "~> 6.0"
     }
   }
-}
 
-provider "aws" {
-  region = var.aws_region
+  backend "s3" {
+    bucket       = "qa-cloud-platform-tfstate-77044701210c"
+    key          = "qa-cloud-platform/terraform.tfstate"
+    region       = "ca-central-1"
+    encrypt      = true
+    use_lockfile = true
+  }
 }
