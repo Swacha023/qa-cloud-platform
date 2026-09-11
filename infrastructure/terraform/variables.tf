@@ -28,3 +28,8 @@ variable "jwt_secret" {
   type      = string
   sensitive = true
 }
+
+variable "worker_token" {
+  type      = string
+  sensitive = true
+}
