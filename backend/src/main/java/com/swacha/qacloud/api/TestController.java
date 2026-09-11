@@ -38,6 +38,14 @@ public class TestController {
         return tests.createSuite(projectId, request);
     }
 
+    @PatchMapping("/suites/{suiteId}")
+    public TestSuite updateSuite(
+        @PathVariable Long suiteId,
+        @RequestBody TestDtos.UpdateSuiteRequest request) {
+
+        return tests.updateSuite(suiteId, request);
+    }
+
     @GetMapping("/suites/{suiteId}/cases")
     public List<TestCaseEntity> cases(@PathVariable Long suiteId) {
         return tests.cases(suiteId);

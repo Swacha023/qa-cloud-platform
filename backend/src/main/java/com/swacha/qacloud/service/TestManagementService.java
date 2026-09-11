@@ -15,6 +15,23 @@ public class TestManagementService {
  public TestManagementService(ProjectService projects, TestSuiteRepository suites, TestCaseRepository cases, TestRunRepository runs, TestResultRepository results){this.projects=projects;this.suites=suites;this.cases=cases;this.runs=runs;this.results=results;}
  public List<TestSuite> suites(Long projectId){projects.get(projectId); return suites.findByProjectId(projectId);}
  public TestSuite createSuite(Long projectId, TestDtos.CreateSuiteRequest r){Project p=projects.get(projectId); TestSuite s=new TestSuite(); s.setProject(p); s.setName(r.name()); s.setDescription(r.description()); return suites.save(s);}
+ public TestSuite updateSuite(
+        Long suiteId,
+        TestDtos.UpdateSuiteRequest request) {
+
+    TestSuite suite = suites.findById(suiteId)
+            .orElseThrow(() -> new IllegalArgumentException("Suite not found"));
+
+    if (request.name() != null && !request.name().isBlank()) {
+        suite.setName(request.name());
+    }
+
+    if (request.description() != null) {
+        suite.setDescription(request.description());
+    }
+
+    return suites.save(suite);
+}
  public List<TestCaseEntity> cases(Long suiteId){return cases.findBySuiteId(suiteId);}
  public List<TestCaseEntity> projectCases(Long projectId){projects.get(projectId); return cases.findByProjectId(projectId);}
  public TestCaseEntity createCase(Long suiteId, TestDtos.CreateCaseRequest r){TestSuite s=suites.findById(suiteId).orElseThrow(()->new IllegalArgumentException("Suite not found")); TestCaseEntity c=new TestCaseEntity(); c.setSuite(s); c.setTitle(r.title()); c.setDescription(r.description()); c.setPreconditions(r.preconditions()); c.setSteps(r.steps()); c.setExpectedResult(r.expectedResult()); c.setPriority(Priority.valueOf(r.priority()==null?"MEDIUM":r.priority())); c.setCreatedAt(Instant.now()); return cases.save(c);}
