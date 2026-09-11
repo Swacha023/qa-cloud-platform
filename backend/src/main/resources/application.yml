@@ -25,3 +25,4 @@ app:
   frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
   test-runner-dir: ${APP_TEST_RUNNER_DIR:../test-runner}
   sqs-queue-url: ${APP_SQS_QUEUE_URL:}
+  worker-token: ${APP_WORKER_TOKEN:}
